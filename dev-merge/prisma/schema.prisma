@@ -12,3 +12,86 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  username      String   @unique
+  email         String   @unique
+  bio           String?
+  profileImage  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  groups        Group[]          @relation("UserGroups")
+  memberships   GroupMember[]
+  notifications Notification[]
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  timeline    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creatorId   String
+  creator     User     @relation("UserGroups", fields: [creatorId], references: [id])
+
+  members     GroupMember[]
+  tags        GroupTag[]
+}
+
+model Tag {
+  id    String @id @default(uuid())
+  name  String @unique
+
+  groups GroupTag[]
+}
+
+model GroupTag {
+  groupId String
+  tagId   String
+
+  group Group @relation(fields: [groupId], references: [id])
+  tag   Tag   @relation(fields: [tagId], references: [id])
+
+  @@id([groupId, tagId])
+}
+
+model GroupMember {
+  id       String   @id @default(uuid())
+  role     Role     @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  groupId  String
+  userId   String
+
+  group    Group @relation(fields: [groupId], references: [id])
+  user     User  @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+}
+
+enum Role {
+  LEADER
+  MEMBER
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  type      NotificationType
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum NotificationType {
+  JOIN
+  GROUP_DELETED
+}
