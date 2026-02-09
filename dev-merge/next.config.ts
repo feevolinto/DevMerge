@@ -32,11 +32,7 @@ const nextConfig: NextConfig = {
     // Fail build on type errors
     ignoreBuildErrors: false,
   },
-
-  // ESLint during build
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
 };
 
 export default nextConfig;
+
