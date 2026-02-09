@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Prisma Schema for Dev Merge
+// This is your Prisma schema file
 
 generator client {
   provider = "prisma-client-js"
@@ -10,54 +7,121 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // Note: In Prisma 7, the URL is configured in prisma.config.ts
 }
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
 
 model User {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   name          String
-  username      String   @unique
-  email         String   @unique
+  username      String    @unique
+  email         String    @unique
+  password      String?   // Nullable for OAuth users
   bio           String?
   profileImage  String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  emailVerified DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  groups        Group[]          @relation("UserGroups")
+  // Relations
+  groups        Group[]         @relation("UserGroups")
   memberships   GroupMember[]
   notifications Notification[]
+  accounts      Account[]
+  sessions      Session[]
+
+  @@index([email])
+  @@index([username])
 }
+
+// NextAuth models
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================
+// CORE DOMAIN MODELS
+// ============================================
 
 model Group {
   id          String   @id @default(uuid())
   title       String
-  description String
+  description String   @db.Text
   timeline    String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  creatorId   String
-  creator     User     @relation("UserGroups", fields: [creatorId], references: [id])
+  creatorId String
+  creator   User   @relation("UserGroups", fields: [creatorId], references: [id], onDelete: Cascade)
 
-  members     GroupMember[]
-  tags        GroupTag[]
+  members GroupMember[]
+  tags    GroupTag[]
+
+  @@index([creatorId])
+  @@index([createdAt])
+  @@index([isActive])
 }
 
 model Tag {
-  id    String @id @default(uuid())
-  name  String @unique
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
 
   groups GroupTag[]
+
+  @@index([slug])
 }
 
 model GroupTag {
   groupId String
   tagId   String
 
-  group Group @relation(fields: [groupId], references: [id])
-  tag   Tag   @relation(fields: [tagId], references: [id])
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([groupId, tagId])
+  @@index([groupId])
+  @@index([tagId])
 }
 
 model GroupMember {
@@ -65,13 +129,15 @@ model GroupMember {
   role     Role     @default(MEMBER)
   joinedAt DateTime @default(now())
 
-  groupId  String
-  userId   String
+  groupId String
+  userId  String
 
-  group    Group @relation(fields: [groupId], references: [id])
-  user     User  @relation(fields: [userId], references: [id])
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, userId])
+  @@index([userId])
+  @@index([groupId])
 }
 
 enum Role {
@@ -80,17 +146,26 @@ enum Role {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
+  id        String           @id @default(uuid())
   type      NotificationType
   message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  // Optional references for context
+  groupId String?
+  actorId String? // User who triggered the notification
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 enum NotificationType {
   JOIN
   GROUP_DELETED
+  GROUP_UPDATED
+  NEW_MEMBER
 }
