@@ -1,28 +1,23 @@
 import { PrismaClient, Role, NotificationType } from "@prisma/client";
-import { Pool } from "@neondatabase/serverless";
-import { PrismaNeon } from "@prisma/adapter-neon";
 import bcrypt from "bcryptjs";
 
-const connectionString = process.env.DATABASE_URL!;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaNeon(pool);
-
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting database seed...");
 
-  // Clean existing data
+  // Clean existing data (optional - comment out if you want to keep existing data)
+  console.log("🧹 Cleaning existing data...");
   await prisma.notification.deleteMany();
   await prisma.groupMember.deleteMany();
   await prisma.groupTag.deleteMany();
   await prisma.group.deleteMany();
   await prisma.tag.deleteMany();
   await prisma.user.deleteMany();
-
   console.log("✅ Cleaned existing data");
 
   // Create users
+  console.log("👥 Creating users...");
   const hashedPassword = await bcrypt.hash("Password123", 10);
 
   const users = await Promise.all([
@@ -33,7 +28,7 @@ async function main() {
         email: "alice@devmerge.com",
         password: hashedPassword,
         bio: "Full-stack developer passionate about AI and machine learning",
-        profileImage: "https://i.pravatar.cc/150?img=1",
+        profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alice",
       },
     }),
     prisma.user.create({
@@ -43,7 +38,7 @@ async function main() {
         email: "bob@devmerge.com",
         password: hashedPassword,
         bio: "Backend engineer with expertise in cloud architecture",
-        profileImage: "https://i.pravatar.cc/150?img=2",
+        profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bob",
       },
     }),
     prisma.user.create({
@@ -53,7 +48,7 @@ async function main() {
         email: "carol@devmerge.com",
         password: hashedPassword,
         bio: "Frontend developer and UX enthusiast",
-        profileImage: "https://i.pravatar.cc/150?img=3",
+        profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=Carol",
       },
     }),
     prisma.user.create({
@@ -63,6 +58,7 @@ async function main() {
         email: "david@devmerge.com",
         password: hashedPassword,
         bio: "Mobile developer building cross-platform apps",
+        profileImage: "https://api.dicebear.com/7.x/avataaars/svg?seed=David",
       },
     }),
   ]);
@@ -70,6 +66,7 @@ async function main() {
   console.log(`✅ Created ${users.length} users`);
 
   // Create tags
+  console.log("🏷️  Creating tags...");
   const tags = await Promise.all([
     prisma.tag.create({ data: { name: "AI", slug: "ai" } }),
     prisma.tag.create({ data: { name: "Full Stack", slug: "full-stack" } }),
@@ -83,6 +80,8 @@ async function main() {
   console.log(`✅ Created ${tags.length} tags`);
 
   // Create groups
+  console.log("📦 Creating groups...");
+  
   const group1 = await prisma.group.create({
     data: {
       title: "AI Chatbot for Customer Service",
@@ -168,6 +167,8 @@ async function main() {
   console.log("✅ Created 4 groups");
 
   // Add members to groups
+  console.log("👥 Adding members to groups...");
+  
   await prisma.groupMember.create({
     data: {
       groupId: group1.id,
@@ -195,6 +196,8 @@ async function main() {
   console.log("✅ Added members to groups");
 
   // Create notifications
+  console.log("🔔 Creating notifications...");
+  
   await prisma.notification.createMany({
     data: [
       {
@@ -224,10 +227,16 @@ async function main() {
   console.log("✅ Created notifications");
 
   console.log("\n🎉 Database seeded successfully!");
-  console.log("\nTest Credentials:");
-  console.log("Email: alice@devmerge.com");
-  console.log("Password: Password123");
-  console.log("\n(Same password for all test users)");
+  console.log("\n📊 Summary:");
+  console.log(`   - ${users.length} users created`);
+  console.log(`   - ${tags.length} tags created`);
+  console.log(`   - 4 groups created`);
+  console.log(`   - 3 additional memberships created`);
+  console.log(`   - 3 notifications created`);
+  console.log("\n🔐 Test Credentials:");
+  console.log("   Email: alice@devmerge.com");
+  console.log("   Password: Password123");
+  console.log("   (Same password for all test users)\n");
 }
 
 main()
