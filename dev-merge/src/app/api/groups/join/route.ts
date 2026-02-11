@@ -18,10 +18,10 @@ export const runtime = "nodejs";
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: groupId } = params;
+    const { id: groupId } = await params;
 
     // TODO: Get from session
     const TEMP_USER_ID = "temp-user-001";
@@ -120,10 +120,10 @@ export async function POST(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: groupId } = params;
+    const { id: groupId } = await params;
 
     // TODO: Get from session
     const TEMP_USER_ID = "temp-user-001";
