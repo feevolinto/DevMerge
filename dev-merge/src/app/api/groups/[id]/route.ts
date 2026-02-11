@@ -20,10 +20,11 @@ export const runtime = "nodejs";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // IMPORTANT: Await params in Next.js 15
+    const { id } = await params;
 
     const group = await prisma.group.findUnique({
       where: { id },
@@ -84,10 +85,11 @@ export async function GET(
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // IMPORTANT: Await params
+    const { id } = await params;
     const body = await req.json();
 
     // Validate input
@@ -123,9 +125,7 @@ export async function PUT(
     // Handle tags if provided
     if (tags) {
       updatePayload.tags = {
-        // Delete existing tags
         deleteMany: {},
-        // Create new tags
         create: tags.map((tagName) => ({
           tag: {
             connectOrCreate: {
@@ -140,7 +140,6 @@ export async function PUT(
       };
     }
 
-    // Update group
     const updatedGroup = await prisma.group.update({
       where: { id },
       data: updatePayload,
@@ -205,10 +204,11 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // IMPORTANT: Await params
+    const { id } = await params;
 
     // TODO: Get from session
     const TEMP_USER_ID = "temp-user-001";
