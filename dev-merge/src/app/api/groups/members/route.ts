@@ -11,10 +11,10 @@ export const runtime = "nodejs";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: groupId } = params;
+    const { id: groupId } = await params;
 
     // Check if group exists
     const group = await prisma.group.findUnique({
