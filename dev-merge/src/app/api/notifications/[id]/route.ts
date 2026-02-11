@@ -11,10 +11,10 @@ export const runtime = "nodejs";
 
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // TODO: Get from session
     const TEMP_USER_ID = "temp-user-001";
@@ -64,10 +64,10 @@ export async function PUT(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // TODO: Get from session
     const TEMP_USER_ID = "temp-user-001";
