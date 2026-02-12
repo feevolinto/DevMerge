@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Users, Calendar, User } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { JoinGroupButton } from "@/components/groups/join-group-button";
 
 // Helper function to get initials
 function getInitials(name: string) {
@@ -19,7 +20,6 @@ export default async function GroupDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  // CHANGED: Await params
   const { id } = await params;
   
   // Fetch the specific group
@@ -28,10 +28,20 @@ export default async function GroupDetailPage({
   });
 
   if (!response.ok) {
-    notFound(); // Show 404 page if group not found
+    notFound();
   }
 
   const group = await response.json();
+
+  // TODO: Replace with actual user ID from session
+  const CURRENT_USER_ID = "temp-user-001";
+
+  // Check if current user is a member or the leader
+  const currentUserMembership = group.members.find(
+    (m: any) => m.user.id === CURRENT_USER_ID
+  );
+  const isMember = !!currentUserMembership;
+  const isLeader = currentUserMembership?.role === "LEADER";
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -48,10 +58,10 @@ export default async function GroupDetailPage({
         {/* Header Card */}
         <Card>
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-4">
               <div className="space-y-2 flex-1">
                 <CardTitle className="text-3xl">{group.title}</CardTitle>
-                <CardDescription className="flex items-center gap-4 text-base">
+                <CardDescription className="flex flex-wrap items-center gap-4 text-base">
                   <span className="flex items-center gap-2">
                     <User className="h-4 w-4" />
                     Created by {group.creator.name}
@@ -68,11 +78,25 @@ export default async function GroupDetailPage({
                   )}
                 </CardDescription>
               </div>
-              <Button size="lg">Join Group</Button>
+              {/* Join/Leave Button */}
+              <JoinGroupButton
+                groupId={group.id}
+                isMember={isMember}
+                isLeader={isLeader}
+              />
             </div>
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {/* Status Badge */}
+            {isMember && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800 font-medium">
+                  {isLeader ? "🎉 You're the leader of this group" : "✅ You're a member of this group"}
+                </p>
+              </div>
+            )}
+
             {/* Tags */}
             <div>
               <h3 className="text-sm font-semibold mb-2">Technologies</h3>
@@ -90,7 +114,9 @@ export default async function GroupDetailPage({
             {/* Description */}
             <div>
               <h3 className="text-sm font-semibold mb-2">About This Project</h3>
-              <p className="text-gray-700 leading-relaxed">{group.description}</p>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {group.description}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -122,15 +148,25 @@ export default async function GroupDetailPage({
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4">
-          <Button size="lg" className="flex-1">
-            Join This Project
-          </Button>
-          <Button size="lg" variant="outline">
-            Contact Leader
-          </Button>
-        </div>
+        {/* Action Section for Non-Members */}
+        {!isMember && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <h3 className="text-xl font-semibold">Interested in joining?</h3>
+                <p className="text-gray-600">
+                  Join this project to collaborate with {group.members.length} other{" "}
+                  {group.members.length === 1 ? "member" : "members"}
+                </p>
+                <JoinGroupButton
+                  groupId={group.id}
+                  isMember={isMember}
+                  isLeader={isLeader}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
