@@ -6,9 +6,8 @@ import { slugify } from "@/lib/utils";
 import { Role } from "@prisma/client";
 import { ZodError } from "zod";
 
-// Force dynamic rendering for Prisma 7
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs"; // Explicitly use Node.js runtime
+export const runtime = "nodejs";
 
 // ============================================
 // GET /api/groups - Fetch groups with filters
@@ -18,7 +17,6 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     
-    // Parse and validate query parameters
     const params = groupQuerySchema.parse({
       search: searchParams.get("search"),
       tag: searchParams.get("tag"),
@@ -27,12 +25,10 @@ export async function GET(req: Request) {
       cursor: searchParams.get("cursor"),
     });
 
-    // Build where clause
     const where: any = {
       isActive: true,
     };
 
-    // Add search filter
     if (params.search) {
       where.OR = [
         { title: { contains: params.search, mode: "insensitive" } },
@@ -40,7 +36,6 @@ export async function GET(req: Request) {
       ];
     }
 
-    // Add tag filter
     if (params.tag) {
       where.tags = {
         some: {
@@ -54,15 +49,13 @@ export async function GET(req: Request) {
       };
     }
 
-    // Add creator filter
     if (params.creatorId) {
       where.creatorId = params.creatorId;
     }
 
-    // Fetch groups with cursor-based pagination
     const groups = await prisma.group.findMany({
       where,
-      take: params.limit + 1, // Fetch one extra to determine if there are more
+      take: params.limit + 1,
       ...(params.cursor && {
         skip: 1,
         cursor: { id: params.cursor },
@@ -87,6 +80,18 @@ export async function GET(req: Request) {
             },
           },
         },
+        // IMPORTANT: Include members so we can filter
+        members: {
+          select: {
+            id: true,
+            role: true,
+            user: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             members: true,
@@ -98,7 +103,6 @@ export async function GET(req: Request) {
       },
     });
 
-    // Determine if there are more results
     const hasMore = groups.length > params.limit;
     const data = hasMore ? groups.slice(0, -1) : groups;
     const nextCursor = hasMore ? data[data.length - 1].id : undefined;
@@ -115,7 +119,7 @@ export async function GET(req: Request) {
 
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: "Invalid query parameters", details: error.issues }, // Changed from .errors to .issues
+        { error: "Invalid query parameters", details: error.issues },
         { status: 400 }
       );
     }
@@ -135,14 +139,10 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // Validate input
     const data = createGroupSchema.parse(body);
 
-    // TODO: Get userId from session once auth is implemented
-    // For now, use a temporary user
     const TEMP_USER_ID = "temp-user-001";
 
-    // Ensure temp user exists (development only)
     const user = await prisma.user.upsert({
       where: { id: TEMP_USER_ID },
       update: {},
@@ -155,10 +155,8 @@ export async function POST(req: Request) {
       },
     });
 
-    // Verify authentication
     requireAuth(user.id);
 
-    // Create group with creator as leader
     const group = await prisma.group.create({
       data: {
         title: data.title,
@@ -166,7 +164,6 @@ export async function POST(req: Request) {
         timeline: data.timeline,
         creatorId: user.id,
         
-        // Auto-add creator as LEADER
         members: {
           create: {
             userId: user.id,
@@ -174,7 +171,6 @@ export async function POST(req: Request) {
           },
         },
 
-        // Handle tags if provided
         ...(data.tags && data.tags.length > 0 && {
           tags: {
             create: data.tags.map((tagName) => ({
@@ -226,7 +222,7 @@ export async function POST(req: Request) {
 
     if (error instanceof ZodError) {
       return NextResponse.json(
-        { error: "Validation failed", details: error.issues }, // Changed from .errors to .issues
+        { error: "Validation failed", details: error.issues },
         { status: 400 }
       );
     }
