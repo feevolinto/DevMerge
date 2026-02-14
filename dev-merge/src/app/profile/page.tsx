@@ -6,13 +6,19 @@ import { Separator } from "@/components/ui/separator";
 import { User, Users, FolderKanban, Calendar } from "lucide-react";
 import Link from "next/link";
 import { getInitials, formatRelativeTime } from "@/lib/utils";
+import { getCurrentUser } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
-  // TODO: Replace with actual user ID from session
-  const CURRENT_USER_ID = "temp-user-001";
+  // Get current authenticated user
+  const currentUser = await getCurrentUser();
+  
+  if (!currentUser) {
+    redirect("/login");
+  }
 
   // Fetch user data
-  const userResponse = await fetch(`http://localhost:3000/api/users/${CURRENT_USER_ID}`, {
+  const userResponse = await fetch(`http://localhost:3000/api/users/${currentUser.id}`, {
     cache: "no-store",
   });
 
@@ -28,7 +34,7 @@ export default async function ProfilePage() {
 
   // Fetch user's groups (as leader)
   const leaderGroupsResponse = await fetch(
-    `http://localhost:3000/api/groups?creatorId=${CURRENT_USER_ID}`,
+    `http://localhost:3000/api/groups?creatorId=${currentUser.id}`,
     { cache: "no-store" }
   );
   const leaderGroupsData = await leaderGroupsResponse.json();
@@ -42,21 +48,9 @@ export default async function ProfilePage() {
   const allGroups = allGroupsData.data || [];
 
   // Filter groups where user is a member (but not leader)
-  console.log('=== DEBUG: Profile Page ===');
-  console.log('Current User ID:', CURRENT_USER_ID);
-  console.log('Total groups fetched:', allGroups.length);
-
-// Filter groups where user is a member (but not leader)
   const memberGroups = allGroups.filter((group: any) => {
-    const isMember = group.members?.some((m: any) => m.user.id === CURRENT_USER_ID);
-    const isLeader = group.creator.id === CURRENT_USER_ID;
-  
-  // ADD DEBUG:
-    console.log(`Group: ${group.title}`);
-    console.log(`  - isMember: ${isMember}`);
-    console.log(`  - isLeader: ${isLeader}`);
-    console.log(`  - members:`, group.members?.map((m: any) => m.user.id));
-  
+    const isMember = group.members?.some((m: any) => m.user.id === currentUser.id);
+    const isLeader = group.creator.id === currentUser.id;
     return isMember && !isLeader;
   });
 
