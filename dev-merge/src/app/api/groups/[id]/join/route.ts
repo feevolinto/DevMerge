@@ -1,34 +1,28 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  requireAuth,
   canJoinGroup,
   canLeaveGroup,
   ForbiddenError,
   NotFoundError,
 } from "@/lib/permissions";
 import { Role } from "@prisma/client";
+import { requireUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// ============================================
-// POST /api/groups/[id]/join - Join a group
-// ============================================
-
+// POST /api/groups/[id]/join
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // IMPORTANT: Await params in Next.js 15
     const { id: groupId } = await params;
+    
+    // Get authenticated user
+    const currentUser = await requireUser();
 
-    // TODO: Get from session
-    const TEMP_USER_ID = "temp-user-001";
-    requireAuth(TEMP_USER_ID);
-
-    // Check if group exists and is active
     const group = await prisma.group.findUnique({
       where: { id: groupId },
       select: {
@@ -47,17 +41,15 @@ export async function POST(
       throw new ForbiddenError("This group is no longer accepting members");
     }
 
-    // Check if user can join
-    const canJoin = await canJoinGroup(TEMP_USER_ID, groupId);
+    const canJoin = await canJoinGroup(currentUser.id, groupId);
     if (!canJoin) {
       throw new ForbiddenError("You are already a member of this group");
     }
 
-    // Create membership
     const membership = await prisma.groupMember.create({
       data: {
         groupId,
-        userId: TEMP_USER_ID,
+        userId: currentUser.id,
         role: Role.MEMBER,
       },
       include: {
@@ -83,15 +75,22 @@ export async function POST(
       data: {
         userId: group.creatorId,
         type: "JOIN",
-        message: `Someone joined your group "${group.title}"`,
+        message: `${currentUser.name} joined your group "${group.title}"`,
         groupId,
-        actorId: TEMP_USER_ID,
+        actorId: currentUser.id,
       },
     });
 
     return NextResponse.json(membership, { status: 201 });
   } catch (error: any) {
     console.error("Error joining group:", error);
+
+    if (error.message === "Unauthorized") {
+      return NextResponse.json(
+        { error: "You must be logged in to join a group" },
+        { status: 401 }
+      );
+    }
 
     if (error instanceof NotFoundError) {
       return NextResponse.json({ error: error.message }, { status: 404 });
@@ -115,36 +114,29 @@ export async function POST(
   }
 }
 
-// ============================================
-// DELETE /api/groups/[id]/join - Leave a group
-// ============================================
-
+// DELETE /api/groups/[id]/join
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // IMPORTANT: Await params
     const { id: groupId } = await params;
+    
+    // Get authenticated user
+    const currentUser = await requireUser();
 
-    // TODO: Get from session
-    const TEMP_USER_ID = "temp-user-001";
-    requireAuth(TEMP_USER_ID);
-
-    // Check if user can leave
-    const canLeave = await canLeaveGroup(TEMP_USER_ID, groupId);
+    const canLeave = await canLeaveGroup(currentUser.id, groupId);
     if (!canLeave) {
       throw new ForbiddenError(
         "You cannot leave this group. Group leaders cannot leave their own group."
       );
     }
 
-    // Delete membership
     await prisma.groupMember.delete({
       where: {
         groupId_userId: {
           groupId,
-          userId: TEMP_USER_ID,
+          userId: currentUser.id,
         },
       },
     });
@@ -154,6 +146,13 @@ export async function DELETE(
     });
   } catch (error: any) {
     console.error("Error leaving group:", error);
+
+    if (error.message === "Unauthorized") {
+      return NextResponse.json(
+        { error: "You must be logged in" },
+        { status: 401 }
+      );
+    }
 
     if (error instanceof ForbiddenError) {
       return NextResponse.json({ error: error.message }, { status: 403 });
