@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createGroupSchema, groupQuerySchema } from "@/lib/validators/group";
-import { requireAuth } from "@/lib/permissions";
 import { slugify } from "@/lib/utils";
 import { Role } from "@prisma/client";
 import { ZodError } from "zod";
+import { requireUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// ============================================
-// GET /api/groups - Fetch groups with filters
-// ============================================
-
+// GET /api/groups
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -80,7 +77,6 @@ export async function GET(req: Request) {
             },
           },
         },
-        // IMPORTANT: Include members so we can filter
         members: {
           select: {
             id: true,
@@ -131,42 +127,25 @@ export async function GET(req: Request) {
   }
 }
 
-// ============================================
-// POST /api/groups - Create a new group
-// ============================================
-
+// POST /api/groups
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    // Get authenticated user
+    const currentUser = await requireUser();
     
+    const body = await req.json();
     const data = createGroupSchema.parse(body);
-
-    const TEMP_USER_ID = "temp-user-001";
-
-    const user = await prisma.user.upsert({
-      where: { id: TEMP_USER_ID },
-      update: {},
-      create: {
-        id: TEMP_USER_ID,
-        name: "Dev User",
-        username: "devuser",
-        email: "dev@devmerge.com",
-        bio: "Temporary development user",
-      },
-    });
-
-    requireAuth(user.id);
 
     const group = await prisma.group.create({
       data: {
         title: data.title,
         description: data.description,
         timeline: data.timeline,
-        creatorId: user.id,
+        creatorId: currentUser.id,
         
         members: {
           create: {
-            userId: user.id,
+            userId: currentUser.id,
             role: Role.LEADER,
           },
         },
@@ -219,6 +198,13 @@ export async function POST(req: Request) {
     return NextResponse.json(group, { status: 201 });
   } catch (error: any) {
     console.error("Error creating group:", error);
+
+    if (error.message === "Unauthorized") {
+      return NextResponse.json(
+        { error: "You must be logged in to create a group" },
+        { status: 401 }
+      );
+    }
 
     if (error instanceof ZodError) {
       return NextResponse.json(
