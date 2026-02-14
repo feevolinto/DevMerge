@@ -6,8 +6,15 @@ import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
 import { MarkAsReadButton } from "@/components/notifications/mark-as-read-button";
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
+import { getCurrentUser } from "@/lib/auth-helpers";
+import { redirect } from "next/navigation";
 
 export default async function NotificationsPage() {
+  const currentUser = await getCurrentUser();
+  
+  if (!currentUser) {
+    redirect("/login");
+  }
   // Fetch notifications from API
   const response = await fetch("http://localhost:3000/api/notifications", {
     cache: "no-store",
