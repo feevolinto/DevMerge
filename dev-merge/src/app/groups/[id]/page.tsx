@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Users, Calendar, User } from "lucide-react";
+import { ArrowLeft, Users, Calendar, User, Settings } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JoinGroupButton } from "@/components/groups/join-group-button";
+import { DeleteGroupButton } from "@/components/groups/delete-group-button";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 // Helper function to get initials
 function getInitials(name: string) {
@@ -33,8 +35,14 @@ export default async function GroupDetailPage({
 
   const group = await response.json();
 
-  // TODO: Replace with actual user ID from session
-  const CURRENT_USER_ID = "temp-user-001";
+  // // TODO: Replace with actual user ID from session
+  // const CURRENT_USER_ID = "temp-user-001";
+  const currentUser = await getCurrentUser();
+  const CURRENT_USER_ID = currentUser?.id || null;
+
+  if (!currentUser) {
+  // They can still view, just can't join
+  }
 
   // Check if current user is a member or the leader
   const currentUserMembership = group.members.find(
@@ -78,12 +86,27 @@ export default async function GroupDetailPage({
                   )}
                 </CardDescription>
               </div>
-              {/* Join/Leave Button */}
-              <JoinGroupButton
-                groupId={group.id}
-                isMember={isMember}
-                isLeader={isLeader}
-              />
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                {isLeader ? (
+                  <>
+                    {/* Edit Button (placeholder for now) */}
+                    <Button variant="outline" size="sm" disabled>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    {/* Delete Button */}
+                    <DeleteGroupButton groupId={group.id} groupTitle={group.title} />
+                  </>
+                ) : (
+                  <JoinGroupButton
+                    groupId={group.id}
+                    isMember={isMember}
+                    isLeader={isLeader}
+                  />
+                )}
+              </div>
             </div>
           </CardHeader>
 
