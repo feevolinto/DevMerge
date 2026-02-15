@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { updateGroupSchema } from "@/lib/validators/group";
 import {
-  requireAuth,
   canEditGroup,
   canDeleteGroup,
   ForbiddenError,
@@ -10,6 +9,7 @@ import {
 } from "@/lib/permissions";
 import { slugify } from "@/lib/utils";
 import { ZodError } from "zod";
+import { requireUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,7 +23,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // IMPORTANT: Await params in Next.js 15
     const { id } = await params;
 
     const group = await prisma.group.findUnique({
@@ -88,16 +87,14 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // IMPORTANT: Await params
     const { id } = await params;
     const body = await req.json();
 
     // Validate input
     const data = updateGroupSchema.parse(body);
 
-    // TODO: Get from session
-    const TEMP_USER_ID = "temp-user-001";
-    requireAuth(TEMP_USER_ID);
+    // Get authenticated user
+    const currentUser = await requireUser();
 
     // Check if group exists
     const existingGroup = await prisma.group.findUnique({
@@ -109,7 +106,7 @@ export async function PUT(
     }
 
     // Check permissions
-    const canEdit = await canEditGroup(TEMP_USER_ID, id);
+    const canEdit = await canEditGroup(currentUser.id, id);
     if (!canEdit) {
       throw new ForbiddenError("Only group leaders can edit the group");
     }
@@ -176,6 +173,13 @@ export async function PUT(
   } catch (error: any) {
     console.error("Error updating group:", error);
 
+    if (error.message === "Unauthorized") {
+      return NextResponse.json(
+        { error: "You must be logged in to edit a group" },
+        { status: 401 }
+      );
+    }
+
     if (error instanceof ZodError) {
       return NextResponse.json(
         { error: "Validation failed", details: error.issues },
@@ -207,12 +211,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // IMPORTANT: Await params
     const { id } = await params;
 
-    // TODO: Get from session
-    const TEMP_USER_ID = "temp-user-001";
-    requireAuth(TEMP_USER_ID);
+    // Get authenticated user
+    const currentUser = await requireUser();
 
     // Check if group exists
     const existingGroup = await prisma.group.findUnique({
@@ -231,7 +233,7 @@ export async function DELETE(
     }
 
     // Check permissions
-    const canDelete = await canDeleteGroup(TEMP_USER_ID, id);
+    const canDelete = await canDeleteGroup(currentUser.id, id);
     if (!canDelete) {
       throw new ForbiddenError("Only group leaders can delete the group");
     }
@@ -239,7 +241,7 @@ export async function DELETE(
     // Create notifications for all members (except creator)
     const memberIds = existingGroup.members
       .map((m) => m.userId)
-      .filter((userId) => userId !== TEMP_USER_ID);
+      .filter((userId) => userId !== currentUser.id);
 
     if (memberIds.length > 0) {
       await prisma.notification.createMany({
@@ -248,7 +250,7 @@ export async function DELETE(
           type: "GROUP_DELETED",
           message: `The group "${existingGroup.title}" has been deleted`,
           groupId: id,
-          actorId: TEMP_USER_ID,
+          actorId: currentUser.id,
         })),
       });
     }
@@ -263,6 +265,13 @@ export async function DELETE(
     });
   } catch (error: any) {
     console.error("Error deleting group:", error);
+
+    if (error.message === "Unauthorized") {
+      return NextResponse.json(
+        { error: "You must be logged in to delete a group" },
+        { status: 401 }
+      );
+    }
 
     if (error instanceof NotFoundError) {
       return NextResponse.json({ error: error.message }, { status: 404 });
