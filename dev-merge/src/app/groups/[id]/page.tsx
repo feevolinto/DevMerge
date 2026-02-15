@@ -35,19 +35,16 @@ export default async function GroupDetailPage({
 
   const group = await response.json();
 
-  // // TODO: Replace with actual user ID from session
-  // const CURRENT_USER_ID = "temp-user-001";
+  // Get current authenticated user
   const currentUser = await getCurrentUser();
   const CURRENT_USER_ID = currentUser?.id || null;
 
-  if (!currentUser) {
-  // They can still view, just can't join
-  }
-
   // Check if current user is a member or the leader
-  const currentUserMembership = group.members.find(
-    (m: any) => m.user.id === CURRENT_USER_ID
-  );
+  // Note: If user is not logged in, they can still view but can't join
+  const currentUserMembership = CURRENT_USER_ID 
+    ? group.members.find((m: any) => m.user.id === CURRENT_USER_ID)
+    : null;
+  
   const isMember = !!currentUserMembership;
   const isLeader = currentUserMembership?.role === "LEADER";
 
@@ -89,17 +86,26 @@ export default async function GroupDetailPage({
 
               {/* Action Buttons */}
               <div className="flex gap-2">
-                {isLeader ? (
+                {!currentUser ? (
+                  // Not logged in - show login prompt
+                  <Link href="/login">
+                    <Button size="sm">Login to Join</Button>
+                  </Link>
+                ) : isLeader ? (
+                  // User is the leader
                   <>
-                    {/* Edit Button (placeholder for now) */}
-                    <Button variant="outline" size="sm" disabled>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Edit
-                    </Button>
+                    {/* Edit Button - NOW ENABLED! */}
+                    <Link href={`/groups/${group.id}/edit`}>
+                      <Button variant="outline" size="sm">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Edit
+                      </Button>
+                    </Link>
                     {/* Delete Button */}
                     <DeleteGroupButton groupId={group.id} groupTitle={group.title} />
                   </>
                 ) : (
+                  // User is logged in but not the leader
                   <JoinGroupButton
                     groupId={group.id}
                     isMember={isMember}
@@ -172,7 +178,7 @@ export default async function GroupDetailPage({
         </Card>
 
         {/* Action Section for Non-Members */}
-        {!isMember && (
+        {!isMember && currentUser && (
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardContent className="pt-6">
               <div className="text-center space-y-4">
@@ -186,6 +192,24 @@ export default async function GroupDetailPage({
                   isMember={isMember}
                   isLeader={isLeader}
                 />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Login Prompt for Non-Logged-In Users */}
+        {!currentUser && (
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <h3 className="text-xl font-semibold">Want to join this project?</h3>
+                <p className="text-gray-600">
+                  Login to collaborate with {group.members.length}{" "}
+                  {group.members.length === 1 ? "member" : "members"}
+                </p>
+                <Link href="/login">
+                  <Button size="lg">Login to Join</Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
