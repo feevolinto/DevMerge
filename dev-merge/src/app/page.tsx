@@ -32,8 +32,8 @@ export default async function HomePage({
       {/* Page Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold mb-2">Discover Projects</h1>
-          <p className="text-gray-600">
+          <h1 className="text-4xl text-white font-bold mb-2">Discover Projects</h1>
+          <p className="text-white">
             Find collaborators and join exciting projects
           </p>
         </div>
