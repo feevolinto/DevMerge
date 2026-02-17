@@ -8,6 +8,7 @@ import Link from "next/link";
 import { getInitials, formatRelativeTime } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
+import { LogoutButton } from "@/components/profile/logout-button";
 
 export default async function ProfilePage() {
   // Get current authenticated user
@@ -98,10 +99,14 @@ export default async function ProfilePage() {
             </div>
 
             {/* Edit Button Placeholder */}
-            <div>
-              <Button variant="outline" disabled>
-                Edit Profile
-              </Button>
+            {/* Edit and Logout Buttons */}
+            <div className="flex flex-col gap-2">
+              <Link href="/profile/edit">
+                <Button variant="outline">
+                 Edit Profile
+                </Button>
+              </Link>
+              <LogoutButton />
             </div>
           </div>
         </CardContent>
