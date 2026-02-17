@@ -1,28 +1,33 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Check, Trash2 } from "lucide-react";
+import { Bell } from "lucide-react";
 import Link from "next/link";
 import { formatRelativeTime } from "@/lib/utils";
 import { MarkAsReadButton } from "@/components/notifications/mark-as-read-button";
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 
 export default async function NotificationsPage() {
+  // Redirect if not logged in
   const currentUser = await getCurrentUser();
-  
   if (!currentUser) {
     redirect("/login");
   }
-  // Fetch notifications from API
-  const response = await fetch("http://localhost:3000/api/notifications", {
-    cache: "no-store",
+
+  // Fetch directly from database
+  const notifications = await prisma.notification.findMany({
+    where: {
+      userId: currentUser.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
 
-  const data = await response.json();
-  const notifications = data.data || [];
-  const unreadCount = data.unreadCount || 0;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-3xl">
@@ -40,7 +45,9 @@ export default async function NotificationsPage() {
         <p className="text-gray-600">
           {unreadCount > 0 ? (
             <>
-              You have <span className="font-semibold text-blue-600">{unreadCount}</span> unread notification{unreadCount !== 1 ? "s" : ""}
+              You have{" "}
+              <span className="font-semibold text-blue-600">{unreadCount}</span>{" "}
+              unread notification{unreadCount !== 1 ? "s" : ""}
             </>
           ) : (
             "You're all caught up! 🎉"
@@ -51,7 +58,6 @@ export default async function NotificationsPage() {
       {/* Notifications List */}
       <div className="space-y-4">
         {notifications.length === 0 ? (
-          // Empty State
           <Card>
             <CardContent className="pt-12 pb-12 text-center">
               <Bell className="h-16 w-16 mx-auto text-gray-300 mb-4" />
@@ -65,7 +71,7 @@ export default async function NotificationsPage() {
             </CardContent>
           </Card>
         ) : (
-          notifications.map((notification: any) => (
+          notifications.map((notification) => (
             <Card
               key={notification.id}
               className={`${
@@ -114,7 +120,7 @@ export default async function NotificationsPage() {
         )}
       </div>
 
-      {/* Back to Home Link */}
+      {/* Back to Home */}
       {notifications.length > 0 && (
         <div className="mt-8 text-center">
           <Link href="/">
