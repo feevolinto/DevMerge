@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, ForbiddenError, NotFoundError } from "@/lib/permissions";
+import { requireUser } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // ============================================
-// PUT /api/notifications/[id] - Mark notification as read
+// PUT /api/notifications/[id] - Mark single notification as read
 // ============================================
 
 export async function PUT(
@@ -15,25 +15,27 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const currentUser = await requireUser();
 
-    // TODO: Get from session
-    const TEMP_USER_ID = "temp-user-001";
-    requireAuth(TEMP_USER_ID);
-
-    // Check if notification exists and belongs to user
+    // Make sure the notification belongs to current user
     const notification = await prisma.notification.findUnique({
       where: { id },
     });
 
     if (!notification) {
-      throw new NotFoundError("Notification not found");
+      return NextResponse.json(
+        { error: "Notification not found" },
+        { status: 404 }
+      );
     }
 
-    if (notification.userId !== TEMP_USER_ID) {
-      throw new ForbiddenError("You can only mark your own notifications as read");
+    if (notification.userId !== currentUser.id) {
+      return NextResponse.json(
+        { error: "Not authorized" },
+        { status: 403 }
+      );
     }
 
-    // Update notification
     const updated = await prisma.notification.update({
       where: { id },
       data: { isRead: true },
@@ -41,16 +43,14 @@ export async function PUT(
 
     return NextResponse.json(updated);
   } catch (error: any) {
+    if (error.message === "Unauthorized") {
+      return NextResponse.json(
+        { error: "You must be logged in" },
+        { status: 401 }
+      );
+    }
+
     console.error("Error updating notification:", error);
-
-    if (error instanceof NotFoundError) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
-    }
-
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-
     return NextResponse.json(
       { error: "Failed to update notification" },
       { status: 500 }
@@ -68,43 +68,43 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const currentUser = await requireUser();
 
-    // TODO: Get from session
-    const TEMP_USER_ID = "temp-user-001";
-    requireAuth(TEMP_USER_ID);
-
-    // Check if notification exists and belongs to user
+    // Make sure the notification belongs to current user
     const notification = await prisma.notification.findUnique({
       where: { id },
     });
 
     if (!notification) {
-      throw new NotFoundError("Notification not found");
+      return NextResponse.json(
+        { error: "Notification not found" },
+        { status: 404 }
+      );
     }
 
-    if (notification.userId !== TEMP_USER_ID) {
-      throw new ForbiddenError("You can only delete your own notifications");
+    if (notification.userId !== currentUser.id) {
+      return NextResponse.json(
+        { error: "Not authorized" },
+        { status: 403 }
+      );
     }
 
-    // Delete notification
     await prisma.notification.delete({
       where: { id },
     });
 
     return NextResponse.json({
-      message: "Notification deleted successfully",
+      message: "Notification deleted",
     });
   } catch (error: any) {
+    if (error.message === "Unauthorized") {
+      return NextResponse.json(
+        { error: "You must be logged in" },
+        { status: 401 }
+      );
+    }
+
     console.error("Error deleting notification:", error);
-
-    if (error instanceof NotFoundError) {
-      return NextResponse.json({ error: error.message }, { status: 404 });
-    }
-
-    if (error instanceof ForbiddenError) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-
     return NextResponse.json(
       { error: "Failed to delete notification" },
       { status: 500 }
