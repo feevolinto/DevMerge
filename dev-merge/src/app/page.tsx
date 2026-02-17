@@ -28,12 +28,12 @@ export default async function HomePage({
   const groups = data.data || [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-7">
       {/* Page Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-4xl text-white font-bold mb-2">Discover Projects</h1>
-          <p className="text-white">
+          <h1 className="text-3xl font-extrabold mb-2 text-[#090086]">Discover Projects</h1>
+          <p className="text-gray-600">
             Find collaborators and join exciting projects
           </p>
         </div>
@@ -50,13 +50,26 @@ export default async function HomePage({
               name="search"
               placeholder="Search projects..."
               defaultValue={params.search}
-              className="flex-1"
+              className="flex-1 "
             />
-            <Button type="submit">Search</Button>
-            {(params.search || params.tag) && (
-              <Link href="/">
-                <Button type="button" variant="outline">Clear</Button>
-              </Link>
+            <Button 
+  type="submit" 
+  style={{ backgroundColor: '#090086' }}
+  className="text-white hover:opacity-90"
+>
+  Search
+</Button>
+{(params.search || params.tag) && (
+  <Link href="/">
+    <Button 
+      type="button" 
+      variant="outline"
+      style={{ borderColor: '#090086', color: '#090086' }}
+      className="hover:opacity-90"
+    >
+      Clear
+    </Button>
+  </Link>
             )}
           </div>
         </form>
