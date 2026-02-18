@@ -1,12 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Strict mode for better debugging
+  output: 'standalone',
   reactStrictMode: true,
-
-  // Experimental features
   experimental: {
-    // Enable server actions if needed
     serverActions: {
       bodySizeLimit: "2mb",
     },
