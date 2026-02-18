@@ -1,22 +1,19 @@
 version: 1
-applications:
-  - frontend:
-      phases:
-        preBuild:
-          commands:
-            - cd dev-merge
-            - npm ci
-            - npx prisma generate
-            - npx prisma migrate deploy
-        build:
-          commands:
-            - npm run build
-      artifacts:
-        baseDirectory: dev-merge/.next
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - dev-merge/node_modules/**/*
-          - dev-merge/.next/cache/**/*
-    appRoot: dev-merge
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+        - npx prisma generate
+        - npx prisma migrate deploy
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
