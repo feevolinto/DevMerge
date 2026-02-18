@@ -9,6 +9,7 @@ import { getInitials, formatRelativeTime } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/profile/logout-button";
+import { getBaseUrl } from "@/lib/base-url";
 
 export default async function ProfilePage() {
   // Get current authenticated user
@@ -19,7 +20,7 @@ export default async function ProfilePage() {
   }
 
   // Fetch user data
-  const userResponse = await fetch(`http://localhost:3000/api/users/${currentUser.id}`, {
+  const userResponse = await fetch(`${getBaseUrl()}/api/users/${currentUser.id}`, {
     cache: "no-store",
   });
 
@@ -35,14 +36,14 @@ export default async function ProfilePage() {
 
   // Fetch user's groups (as leader)
   const leaderGroupsResponse = await fetch(
-    `http://localhost:3000/api/groups?creatorId=${currentUser.id}`,
+    `${getBaseUrl()}/api/groups?creatorId=${currentUser.id}`,
     { cache: "no-store" }
   );
   const leaderGroupsData = await leaderGroupsResponse.json();
   const leaderGroups = leaderGroupsData.data || [];
 
   // Fetch all groups to find memberships
-  const allGroupsResponse = await fetch("http://localhost:3000/api/groups", {
+  const allGroupsResponse = await fetch(`${getBaseUrl()}/api/groups`, {
     cache: "no-store",
   });
   const allGroupsData = await allGroupsResponse.json();
