@@ -54,23 +54,23 @@ export default async function HomePage({
               className="flex-1 "
             />
             <Button 
-  type="submit" 
-  style={{ backgroundColor: '#090086' }}
-  className="text-white hover:opacity-90"
->
-  Search
-</Button>
-{(params.search || params.tag) && (
-  <Link href="/">
-    <Button 
-      type="button" 
-      variant="outline"
-      style={{ borderColor: '#090086', color: '#090086' }}
-      className="hover:opacity-90"
-    >
-      Clear
-    </Button>
-  </Link>
+              type="submit" 
+              style={{ backgroundColor: '#090086' }}
+              className="text-white hover:opacity-90"
+            >
+            Search
+            </Button>
+            {(params.search || params.tag) && (
+            <Link href="/">
+            <Button 
+              type="button" 
+              variant="outline"
+              style={{ borderColor: '#090086', color: '#090086' }}
+              className="hover:opacity-90"
+            >
+            Clear
+          </Button>
+        </Link>
             )}
           </div>
         </form>
