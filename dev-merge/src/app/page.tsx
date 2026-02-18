@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { getBaseUrl } from "@/lib/base-url";
 
 export default async function HomePage({
   searchParams,
@@ -17,7 +18,7 @@ export default async function HomePage({
   if (params.search) urlParams.append("search", params.search);
   if (params.tag) urlParams.append("tag", params.tag);
   
-  const url = `http://localhost:3000/api/groups${urlParams.toString() ? `?${urlParams}` : ""}`;
+  const url = `${getBaseUrl()}/api/groups${urlParams.toString() ? `?${urlParams}` : ""}`;
 
   // Fetch groups from your API
   const response = await fetch(url, {
@@ -28,7 +29,7 @@ export default async function HomePage({
   const groups = data.data || [];
 
   return (
-    <div className="container mx-auto px-4 py-7">
+    <div className="container mx-auto px-4 py-8">
       {/* Page Header */}
       <div className="mb-8 flex items-center justify-between">
         <div>
