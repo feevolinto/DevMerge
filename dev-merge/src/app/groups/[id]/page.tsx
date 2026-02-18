@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { JoinGroupButton } from "@/components/groups/join-group-button";
 import { DeleteGroupButton } from "@/components/groups/delete-group-button";
 import { getCurrentUser } from "@/lib/auth-helpers";
+import { getBaseUrl } from "@/lib/base-url";
 
 // Helper function to get initials
 function getInitials(name: string) {
@@ -25,7 +26,7 @@ export default async function GroupDetailPage({
   const { id } = await params;
   
   // Fetch the specific group
-  const response = await fetch(`http://localhost:3000/api/groups/${id}`, {
+  const response = await fetch(`${getBaseUrl()}/api/groups/${id}`, {
     cache: "no-store",
   });
 
